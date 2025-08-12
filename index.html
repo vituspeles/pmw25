@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>PMW25 Badge Generator</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f5f5f5;
+    padding: 20px;
+  }
+  canvas {
+    border: 1px solid #ccc;
+    background: white;
+    max-width: 100%;
+  }
+  input, button {
+    margin: 15px;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+  button {
+    background: #0077b6;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #005f86;
+  }
+</style>
+</head>
+<body>
+
+<h2>PMW25 Badge Generator</h2>
+<input type="file" id="upload" accept="image/*" /><br />
+<canvas id="badgeCanvas" width="800" height="800"></canvas><br />
+<button id="downloadBtn">Download Badge</button>
+
+<script>
+  const canvas = document.getElementById('badgeCanvas');
+  const ctx = canvas.getContext('2d');
+  const uploadInput = document.getElementById('upload');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  // Load badge overlay image
+  const badge = new Image();
+  badge.src = 'badge-2.png'; // Put your badge overlay image path here
+  badge.onload = () => {
+    // Initially draw the badge on canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(badge, 0, 0, canvas.width, canvas.height);
+  };
+
+  uploadInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const maxSize = 2 * 1024 * 1024; // 2 MB limit
+    if (file.size > maxSize) {
+      alert("Image too large! Please upload a file under 2 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        if (img.width > 210 || img.height > 210) {
+          alert("Image dimensions must be 210 x 210 pixels or smaller.");
+          e.target.value = "";
+          return;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Clip circle area
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(400, 310, 105, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+
+        // Crop image to square center
+        let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+        if (img.width > img.height) {
+          sx = (img.width - img.height) / 2;
+          sWidth = sHeight = img.height;
+        } else if (img.height > img.width) {
+          sy = (img.height - img.width) / 2;
+          sWidth = sHeight = img.width;
+        }
+
+        // Draw uploaded image inside circle area (210x210 at position 295,205)
+        ctx.drawImage(img, sx, sy, sWidth, sHeight, 295, 205, 210, 210);
+        ctx.restore();
+
+        // Draw badge overlay on top
+        ctx.drawImage(badge, 0, 0, canvas.width, canvas.height);
+      };
+      img.onerror = function() {
+        alert("Failed to load image, please try another.");
+        e.target.value = "";
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'PMW25-badge.png';
+    link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+</script>
+
+</body>
+</html>
