@@ -1,122 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>PMW25 REGISTERED MEMBER BADGE GENERATOR</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background: #f5f5f5;
-    padding: 20px;
-  }
-  canvas {
-    border: 1px solid #ccc;
-    background: white;
-    max-width: 100%;
-  }
-  input, button {
-    margin: 15px;
-    padding: 10px 20px;
-    font-size: 16px;
-  }
-  button {
-    background: #0077b6;
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
-  button:hover {
-    background: #005f86;
-  }
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: #f5f5f5;
+        padding: 20px;
+    }
+    #crop-container {
+        max-width: 300px;
+        margin: auto;
+    }
+    #cropBtn {
+        margin-top: 10px;
+    }
+    canvas {
+        border: 1px solid #ccc;
+        background: white;
+        max-width: 100%;
+        margin-top: 20px;
+    }
+    button, input[type=file] {
+        margin: 10px;
+        padding: 10px 20px;
+        background: #0077b6;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #005f86;
+    }
 </style>
 </head>
 <body>
 
 <h2>PMW25 REGISTERED MEMBER BADGE GENERATOR</h2>
-<input type="file" id="upload" accept="image/*" /><br />
-<canvas id="badgeCanvas" width="800" height="800"></canvas><br />
-<button id="downloadBtn">Download Badge</button>
+<input type="file" id="upload" accept="image/*"><br>
 
+<div id="crop-container">
+    <img id="crop-image" style="max-width:100%; display:none;">
+    <button id="cropBtn" style="display:none;">Crop & Generate Badge</button>
+</div>
+
+<canvas id="badgeCanvas" width="800" height="800"></canvas><br>
+<button id="downloadBtn" style="display:none;">Download Badge</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
-  const canvas = document.getElementById('badgeCanvas');
-  const ctx = canvas.getContext('2d');
-  const uploadInput = document.getElementById('upload');
-  const downloadBtn = document.getElementById('downloadBtn');
+let cropper;
+const canvas = document.getElementById('badgeCanvas');
+const ctx = canvas.getContext('2d');
 
-  // Load badge overlay image
-  const badge = new Image();
-  badge.src = 'badge-2.png'; // Put your badge overlay image path here
-  badge.onload = () => {
-    // Initially draw the badge on canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+const badge = new Image();
+badge.src = 'badge-2.png'; // Your badge overlay image
+badge.onload = () => {
     ctx.drawImage(badge, 0, 0, canvas.width, canvas.height);
-  };
+};
 
-  uploadInput.addEventListener('change', (e) => {
+// Handle image upload
+document.getElementById('upload').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const maxSize = 2 * 1024 * 1024; // 2 MB limit
-    if (file.size > maxSize) {
-      alert("Image too large! Please upload a file under 2 MB.");
-      e.target.value = "";
-      return;
-    }
-
     const reader = new FileReader();
     reader.onload = function(event) {
-      const img = new Image();
-      img.onload = function() {
-        if (img.width >= 1000 || img.height >= 1000) {
-          alert("Image dimensions must be 1000 x 1000 pixels or smaller.");
-          e.target.value = "";
-          return;
-        }
+        const imgElement = document.getElementById('crop-image');
+        imgElement.style.display = 'block';
+        imgElement.src = event.target.result;
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(imgElement, {
+            aspectRatio: 1,
+            viewMode: 1,
+            movable: true,
+            zoomable: true,
+            scalable: true,
+            responsive: true,
+            autoCropArea: 0.8
+        });
 
-        // Clip circle area
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(400, 310, 105, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-
-        // Crop image to square center
-        let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
-        if (img.width > img.height) {
-          sx = (img.width - img.height) / 2;
-          sWidth = sHeight = img.height;
-        } else if (img.height > img.width) {
-          sy = (img.height - img.width) / 2;
-          sWidth = sHeight = img.width;
-        }
-
-        // Draw uploaded image inside circle area (210x210 at position 295,205)
-        ctx.drawImage(img, sx, sy, sWidth, sHeight, 295, 205, 210, 210);
-        ctx.restore();
-
-        // Draw badge overlay on top
-        ctx.drawImage(badge, 0, 0, canvas.width, canvas.height);
-      };
-      img.onerror = function() {
-        alert("Failed to load image, please try another.");
-        e.target.value = "";
-      };
-      img.src = event.target.result;
+        document.getElementById('cropBtn').style.display = 'inline-block';
     };
     reader.readAsDataURL(file);
-  });
+});
 
-  downloadBtn.addEventListener('click', () => {
+// Handle crop & badge generation
+document.getElementById('cropBtn').addEventListener('click', function() {
+    if (!cropper) return;
+
+    const croppedCanvas = cropper.getCroppedCanvas();
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(400, 310, 105, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.drawImage(croppedCanvas, 295, 205, 210, 210);
+    ctx.restore();
+
+    ctx.drawImage(badge, 0, 0, canvas.width, canvas.height);
+
+    document.getElementById('downloadBtn').style.display = 'inline-block';
+});
+
+// Handle download
+document.getElementById('downloadBtn').addEventListener('click', function() {
+    const finalImage = canvas.toDataURL("image/png");
     const link = document.createElement('a');
+    link.href = finalImage;
     link.download = 'PMW25-badge.png';
-    link.href = canvas.toDataURL('image/png');
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-  });
+});
 </script>
 
 </body>
