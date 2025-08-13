@@ -56,8 +56,9 @@ let cropper;
 const canvas = document.getElementById('badgeCanvas');
 const ctx = canvas.getContext('2d');
 
+// Load badge overlay
 const badge = new Image();
-badge.src = 'badge-2.png'; // Your badge overlay image
+badge.src = 'badge-2.png'; // Path to your badge image
 badge.onload = () => {
     ctx.drawImage(badge, 0, 0, canvas.width, canvas.height);
 };
@@ -70,18 +71,18 @@ document.getElementById('upload').addEventListener('change', function(e) {
     const reader = new FileReader();
     reader.onload = function(event) {
         const imgElement = document.getElementById('crop-image');
-        imgElement.style.display = 'block';
         imgElement.src = event.target.result;
+        imgElement.style.display = 'block';
 
         if (cropper) cropper.destroy();
         cropper = new Cropper(imgElement, {
-            aspectRatio: 1,
+            aspectRatio: 1,       // Keep square crop
             viewMode: 1,
             movable: true,
             zoomable: true,
             scalable: true,
             responsive: true,
-            autoCropArea: 0.8
+            autoCropArea: 0.8,   // Default crop box fills 80%
         });
 
         document.getElementById('cropBtn').style.display = 'inline-block';
@@ -93,19 +94,23 @@ document.getElementById('upload').addEventListener('change', function(e) {
 document.getElementById('cropBtn').addEventListener('click', function() {
     if (!cropper) return;
 
+    // Get cropped image at original crop size (any)
     const croppedCanvas = cropper.getCroppedCanvas();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Circular mask for profile area
     ctx.save();
     ctx.beginPath();
     ctx.arc(400, 310, 105, 0, Math.PI * 2, true);
     ctx.closePath();
     ctx.clip();
 
+    // Scale cropped image to fit 210x210 inside badge circle
     ctx.drawImage(croppedCanvas, 295, 205, 210, 210);
     ctx.restore();
 
+    // Draw badge overlay
     ctx.drawImage(badge, 0, 0, canvas.width, canvas.height);
 
     document.getElementById('downloadBtn').style.display = 'inline-block';
